@@ -24,6 +24,21 @@ enum FailureCategory {
   timing
   regulation
   other
+
+  product
+  legal
+  unit_economics
+  operations
+  leadership
+  community
+  strategy
+  cashflow
+  platform_risk
+  execution
+
+  pricing
+  fraud
+  ethics
 }
 
 enum TimelineStage {

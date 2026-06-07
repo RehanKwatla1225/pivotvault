@@ -16,7 +16,13 @@ const app = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:3000' }));
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://pivotvault.netlify.app'
+  ],
+  credentials: true
+}));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10kb' }));
 
