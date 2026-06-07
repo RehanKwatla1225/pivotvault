@@ -26,15 +26,28 @@ const InsightsDashboard = () => {
     fetchData();
   }, []);
 
-  if (loading) return <div className="py-40 text-center animate-pulse text-accent font-data">LOADING INSIGHTS...</div>;
+  if (loading) {
+  return (
+    <div className="py-40 text-center animate-pulse text-accent font-data">
+      LOADING INSIGHTS...
+    </div>
+  );
+}
 
+if (!data) {
+  return (
+    <div className="py-40 text-center text-red-500">
+      Failed to load insights data. Check backend connection.
+    </div>
+  );
+}
   const COLORS = ['#F97316', '#8B5CF6', '#10B981', '#EF4444', '#06B6D4', '#F59E0B'];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-20">
       <div className="mb-16">
         <h1 className="text-5xl font-display font-bold mb-4">Failure Insights</h1>
-        <p className="text-text-secondary text-lg">Aggregated analytics across {data.industryBreakdown.reduce((a,b)=>a+b.count, 0)} startup failures to identify macro-level survival patterns.</p>
+        <p className="text-text-secondary text-lg">Aggregated analytics across {(data.industryBreakdown || []).reduce((a,b)=>a+b.count, 0)} startup failures to identify macro-level survival patterns.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -56,7 +69,7 @@ const InsightsDashboard = () => {
                   outerRadius={100}
                   stroke="none"
                 >
-                  {data.industryBreakdown.map((entry, index) => (
+                  {(data.industryBreakdown || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -128,7 +141,7 @@ const InsightsDashboard = () => {
             Most Viewed Archives
           </h3>
           <div className="space-y-6">
-            {data.topViewed.map((item, i) => (
+            {(data.topViewed || []).map((item, i) => (
               <a key={i} href={`/startup/${item.slug}`} className="flex items-center justify-between group">
                 <div>
                   <div className="font-bold group-hover:text-accent transition-colors">{item.name}</div>
