@@ -7,13 +7,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#0A0F1A',
+        bg: '#0B1020',
         surface: '#111827',
-        'surface-2': '#1E293B',
-        border: '#1E293B',
-        accent: '#F97316',
+        'surface-2': '#1F2937',
+        border: '#1F2937',
+        accent: '#6D5EF5',
         'accent-2': '#8B5CF6',
         success: '#10B981',
+        warning: '#F59E0B',
         danger: '#EF4444',
         'text-primary': '#F1F5F9',
         'text-secondary': '#94A3B8',
@@ -21,7 +22,7 @@ export default {
       },
       fontFamily: {
         display: ['Space Grotesk', 'sans-serif'],
-        body: ['Plus Jakarta Sans', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       spacing: {
@@ -37,7 +38,8 @@ export default {
         '128': '128px',
       },
       borderRadius: {
-        card: '12px',
+        card: '16px',
+        hero: '24px',
         button: '8px',
         badge: '4px',
         modal: '16px',

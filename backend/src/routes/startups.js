@@ -63,6 +63,8 @@ router.get('/', async (req, res, next) => {
         status: s.status,
         industry: s.industry,
         country: s.country,
+        foundingYear: s.foundingYear,
+        shutdownYear: s.shutdownYear,
         fundingInr: s.fundingInr?.toString(),
         peakUsers: s.peakUsers,
         lifetimeMonths: s.lifetimeMonths,

@@ -1,10 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-bg text-text-primary font-body;
+    @apply bg-bg text-text-primary font-body antialiased;
   }
 }
 
@@ -19,14 +21,31 @@
 }
 
 .animate-float {
-  animation: float 3s ease-in-out infinite;
+  animation: float 3.5s ease-in-out infinite;
 }
 
 .glass-card {
-  @apply bg-surface border border-border rounded-card hover:border-accent transition-all duration-300;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  @apply bg-surface/60 backdrop-blur-md border border-border/80 rounded-card transition-all duration-300;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 .glass-card:hover {
-  box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.1), 0 4px 6px -2px rgba(249, 115, 22, 0.05);
+  @apply border-accent/40 bg-surface/80;
+  box-shadow: 0 8px 32px 0 rgba(109, 94, 245, 0.15), inset 0 0 12px rgba(109, 94, 245, 0.05);
+}
+
+/* Custom Scrollbar for premium dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0B1020;
+}
+::-webkit-scrollbar-thumb {
+  background: #1F2937;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6D5EF5;
 }

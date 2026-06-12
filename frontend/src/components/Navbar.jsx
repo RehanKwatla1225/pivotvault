@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Skull, Search, Zap, BarChart2, MessageSquare, Share2, Menu, X } from 'lucide-react';
+import { Skull, Search, Zap, BarChart2, MessageSquare, Share2, Menu, X, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const Navbar = () => {
@@ -9,6 +9,7 @@ const Navbar = () => {
 
   const navLinks = [
     { name: 'Explore', path: '/explore', icon: Search },
+    { name: 'AI Assistant', path: '/assistant', icon: Sparkles },
     { name: 'Risk Scanner', path: '/scan', icon: Zap },
     { name: 'Insights', path: '/insights', icon: BarChart2 },
     { name: 'Graph', path: '/graph', icon: Share2 },

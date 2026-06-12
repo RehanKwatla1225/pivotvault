@@ -8,6 +8,7 @@ import RiskScanner from './pages/RiskScanner';
 import KnowledgeGraph from './pages/KnowledgeGraph';
 import ConfessionWall from './pages/ConfessionWall';
 import InsightsDashboard from './pages/InsightsDashboard';
+import AiAssistant from './pages/AiAssistant';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
             <Route path="/graph" element={<KnowledgeGraph />} />
             <Route path="/confessions" element={<ConfessionWall />} />
             <Route path="/insights" element={<InsightsDashboard />} />
+            <Route path="/assistant" element={<AiAssistant />} />
           </Routes>
         </main>
       </div>

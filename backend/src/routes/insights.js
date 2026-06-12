@@ -14,7 +14,7 @@ router.get('/', async (req, res, next) => {
       return res.json(insightsCache.data);
     }
 
-    const [failureData, yearlyData, topViewed, industryData] = await Promise.all([
+    const [failureData, yearlyData, topViewed, industryData, totalCount, fundingAggregate, fastestStartup, averageRisk] = await Promise.all([
       // Top failure reasons by industry
       prisma.failureReason.groupBy({
         by: ['category'],
@@ -42,9 +42,52 @@ router.get('/', async (req, res, next) => {
         orderBy: { _count: { id: 'desc' } },
         take: 10,
       }),
+      // Total failed startups count
+      prisma.startup.count(),
+      // Total funding lost
+      prisma.startup.aggregate({
+        _sum: {
+          fundingInr: true,
+        },
+      }),
+      // Fastest startup collapse
+      prisma.startup.findFirst({
+        where: {
+          lifetimeMonths: { not: null, gt: 0 },
+        },
+        orderBy: {
+          lifetimeMonths: 'asc',
+        },
+        select: {
+          name: true,
+          lifetimeMonths: true,
+        },
+      }),
+      // Industry risk score calculation
+      prisma.aiAnalysis.aggregate({
+        _avg: {
+          pmfScore: true,
+          retentionScore: true,
+          monetizationScore: true,
+        },
+      }),
     ]);
 
+    const totalFunding = fundingAggregate._sum.fundingInr ? fundingAggregate._sum.fundingInr.toString() : '0';
+    const mostCommonReason = failureData[0]?.category || 'pmf';
+    const fastestCollapseName = fastestStartup ? `${fastestStartup.name} (${fastestStartup.lifetimeMonths} Months)` : 'N/A';
+    const avgRisk = averageRisk._avg.pmfScore 
+      ? Math.round((averageRisk._avg.pmfScore + averageRisk._avg.retentionScore + averageRisk._avg.monetizationScore) / 3) 
+      : 74;
+
     const result = {
+      metrics: {
+        totalFailed: totalCount,
+        totalFundingLost: totalFunding,
+        mostCommonReason: mostCommonReason,
+        fastestCollapse: fastestCollapseName,
+        industryRiskScore: avgRisk,
+      },
       topFailureReasonsByIndustry: failureData.map(f => ({
         category: f.category,
         count: f._count.category,
