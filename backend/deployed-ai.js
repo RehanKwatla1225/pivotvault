@@ -253,7 +253,7 @@ ${historicalContext || 'No startups found in database.'}
 
 USER QUERY: ${query}`;
 
-    const result = await callGemini(prompt);
+    const result = await callAI(prompt);
 
     res.json(result);
   } catch (err) {
