@@ -40,24 +40,27 @@ function getCacheKey(input) {
 async function callGemini(prompt) {
   const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-  console.log(
-    'Gemini key loaded:',
-    process.env.GEMINI_API_KEY?.slice(0, 10)
-  );
+  console.log('Gemini key exists:', !!process.env.GEMINI_API_KEY);
+  console.log('Gemini key prefix:', process.env.GEMINI_API_KEY?.slice(0, 10));
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.0-flash',
-    generationConfig: { responseMimeType: 'application/json' },
+    generationConfig: {
+      responseMimeType: 'application/json'
+    }
   });
-  const result = await model.generateContent(prompt);
-  let text = result.response.text().trim();
-  if (text.startsWith('```')) {
-    text = text.replace(/^```(json)?/, '').replace(/```$/, '').trim();
+
+  try {
+    const result = await model.generateContent(prompt);
+    return JSON.parse(result.response.text());
+  } catch (err) {
+    console.error('FULL GEMINI ERROR:', JSON.stringify(err, null, 2));
+    throw err;
   }
-  return JSON.parse(text);
 }
+  
 
 async function callGroq(prompt) {
   const Groq = require('groq-sdk');
