@@ -13,6 +13,7 @@ const insightsRoutes = require('./routes/insights');
 
 const prisma = new PrismaClient();
 const app = express();
+app.set('trust proxy', 1);
 
 app.set('trust proxy', 1);
 // Middleware

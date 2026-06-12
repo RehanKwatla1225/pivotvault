@@ -78,7 +78,6 @@ async function callAI(prompt) {
   } catch (err) {
     console.warn('Groq also failed:', err.message);
   }
-  // Fallback: return mock analysis when no API keys configured
   return generateMockAnalysis(prompt);
 }
 
@@ -112,13 +111,11 @@ router.post('/risk-scan', riskScanLimiter, async (req, res, next) => {
     const input = riskScanSchema.parse(req.body);
     const cacheKey = getCacheKey(input);
 
-    // Check cache
     const cached = scanCache.get(cacheKey);
     if (cached) {
       return res.json({ ...cached, cached: true });
     }
 
-    // Find similar startups from DB for context
     const similarStartups = await prisma.startup.findMany({
       where: {
         OR: [
@@ -165,7 +162,6 @@ Industry: ${input.industry}`;
       cached: false,
     };
 
-    // Cache for 1 hour
     scanCache.set(cacheKey, result);
     setTimeout(() => scanCache.delete(cacheKey), 60 * 60 * 1000);
 
@@ -175,7 +171,6 @@ Industry: ${input.industry}`;
       return res.status(400).json({ error: 'Invalid input', code: 'VALIDATION_ERROR', details: err.errors });
     }
     console.error('Risk scan error:', err);
-    // Return mock fallback on error
     const mockResult = {
       ...generateMockAnalysis(req.body),
       comparedAgainst: 0,
@@ -197,16 +192,14 @@ router.post('/research', async (req, res, next) => {
     const input = researchSchema.parse(req.body);
     const query = input.query;
 
-    // FIX 1: Fetch all startups with full context
     const startups = await prisma.startup.findMany({
       include: {
         failureReasons: true,
         timelineEvents: true,
       },
-      take: 300
+      take: 20,
     });
 
-    // FIX 3: Get count of failed startups
     const failedCount = await prisma.startup.count({
       where: {
         status: 'failed',
@@ -226,21 +219,20 @@ Reasons:
 ${s.failureReasons.map(r => r.description).join(', ')}
 `).join('\n\n');
 
-    // FIX 4 + FIX 8: Updated prompt with stats and strict rules
     const prompt = `SYSTEM: You are an expert startup failure analyst. Analyze the user's research query using ONLY the historical context of startup failures provided below. You must return ONLY valid JSON matching this schema:
-    {
-      "aiSummary": "A detailed 2-3 paragraph analysis matching the query, detailing the mistakes, comparisons, and structural patterns. Support markdown formatting in the text (like **bolding** and bullets).",
-      "sources": ["slug-of-startup-1", "slug-of-startup-2"],
-      "timeline": [
-        { "year": "YYYY", "event": "Title of event", "startup": "Startup Name" }
-      ],
-      "relatedStartups": [
-        { "name": "Startup Name", "slug": "slug", "industry": "Industry", "status": "failed", "summary": "Short summary" }
-      ],
-      "keyLessons": [
-        { "lesson": "A core lesson", "details": "Elaborate on how to avoid it." }
-      ]
-    }
+{
+  "aiSummary": "A detailed 2-3 paragraph analysis matching the query, detailing the mistakes, comparisons, and structural patterns. Support markdown formatting in the text (like **bolding** and bullets).",
+  "sources": ["slug-of-startup-1", "slug-of-startup-2"],
+  "timeline": [
+    { "year": "YYYY", "event": "Title of event", "startup": "Startup Name" }
+  ],
+  "relatedStartups": [
+    { "name": "Startup Name", "slug": "slug", "industry": "Industry", "status": "failed", "summary": "Short summary" }
+  ],
+  "keyLessons": [
+    { "lesson": "A core lesson", "details": "Elaborate on how to avoid it." }
+  ]
+}
 
 Rules:
 - Use ONLY the supplied database.
@@ -248,9 +240,9 @@ Rules:
 - Never invent startups.
 - If information is unavailable, say so clearly in aiSummary.
 - Base all answers strictly on the provided records.
--Return ONLY valid JSON.
--Do not wrap JSON in markdown.
--Do not explain outside the JSON object.
+- Return ONLY valid JSON.
+- Do not wrap JSON in markdown.
+- Do not explain outside the JSON object.
 
 DATABASE STATS:
 Total startups: ${startups.length}
@@ -261,18 +253,29 @@ ${historicalContext || 'No startups found in database.'}
 
 USER QUERY: ${query}`;
 
-    // FIX 5: Simplified AI call
-    let result;
-    result = await callGemini(prompt);
+    const result = await callGemini(prompt);
 
     res.json(result);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid input', code: 'VALIDATION_ERROR', details: err.errors });
+      return res.status(400).json({
+        error: 'Invalid input',
+        code: 'VALIDATION_ERROR',
+        details: err.errors,
+      });
     }
+
+    if (err.status === 429) {
+      return res.status(429).json({
+        error: 'AI quota exceeded',
+        message: 'Please try again later',
+        retryable: true,
+      });
+    }
+
     console.error('Research assistant error:', err);
-    // FIX 7: Return proper error instead of fake mock data
-    res.status(500).json({
+
+    return res.status(500).json({
       error: 'Research assistant unavailable',
       details: err.message,
     });
