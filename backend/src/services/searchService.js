@@ -1,8 +1,17 @@
-const { TavilyClient } = require("tavily");
+const tavily = require("tavily");
 
-const tavily = new TavilyClient({
-  apiKey: process.env.TAVILY_API_KEY,
-});
+async function searchWeb(query) {
+  const result = await tavily.search({
+    api_key: process.env.TAVILY_API_KEY,
+    query,
+    search_depth: "advanced",
+    max_results: 5,
+  });
+
+  return result.results;
+}
+
+module.exports = { searchWeb };
 
 async function searchWeb(query) {
   const result = await tavily.search(query);
