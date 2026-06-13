@@ -57,24 +57,41 @@ async function callGroq(prompt) {
   const Groq = require('groq-sdk');
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   const response = await groq.chat.completions.create({
-  model: 'llama-3.3-70b-versatile',
-  messages: [{ role: 'user', content: prompt }],
-});
-  const content = response.choices[0].message.content;
+    model: 'llama-3.3-70b-versatile',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are a JSON API. Return ONLY valid JSON. No markdown. No code blocks. No explanation. No backticks.'
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0.3,
+  });
 
-try {
-  return JSON.parse(content);
-} catch (err) {
-  console.error("RAW GROQ RESPONSE:", content);
+  let content = response.choices[0].message.content;
+  console.log('RAW GROQ RESPONSE (first 300 chars):', content?.slice(0, 300));
 
-  return {
-    aiSummary: content,
-    sources: [],
-    timeline: [],
-    relatedStartups: [],
-    keyLessons: []
-  };
-}
+  // Strip markdown code fences if present
+  content = content.replace(/^```(json)?/i, '').replace(/```$/, '').trim();
+
+  // Remove bad control characters that break JSON.parse
+  content = content.replace(/[\x00-\x1F\x7F]/g, (ch) => {
+    // Keep valid JSON whitespace
+    if (ch === '\n' || ch === '\r' || ch === '\t') return ch;
+    return '';
+  });
+
+  try {
+    return JSON.parse(content);
+  } catch (err) {
+    console.error('Groq JSON parse failed:', err.message);
+    console.error('Full raw content:', content);
+    throw new Error(`Groq returned invalid JSON: ${err.message}`);
+  }
 }
 
 // type = 'risk' | 'research' — determines which mock schema to fall back to
@@ -84,7 +101,6 @@ async function callAI(prompt, type = 'risk') {
 
   console.log("Gemini key:", hasGemini);
   console.log("Groq key:", hasGroq);
-  console.log("Groq succeeded");
 
   // ── Try Groq first (faster, no quota issues on free tier) ──────────────
   if (hasGroq) {
