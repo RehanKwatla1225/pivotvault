@@ -2,6 +2,7 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { z } = require('zod');
 const rateLimit = require('express-rate-limit');
+const { requireAuth } = require('../middleware/auth');
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -129,8 +130,8 @@ function generateMockResearch(query) {
   };
 }
 
-// POST /api/ai/risk-scan
-router.post('/risk-scan', riskScanLimiter, async (req, res, next) => {
+// POST /api/ai/risk-scan (auth required)
+router.post('/risk-scan', requireAuth, riskScanLimiter, async (req, res, next) => {
   try {
     const input = riskScanSchema.parse(req.body);
     const cacheKey = getCacheKey(input);
@@ -209,11 +210,16 @@ const researchSchema = z.object({
   query: z.string().min(3).max(500),
 });
 
-// POST /api/ai/research
-router.post('/research', async (req, res, next) => {
+// POST /api/ai/research (auth required)
+router.post('/research', requireAuth, async (req, res, next) => {
   try {
     const input = researchSchema.parse(req.body);
     const query = input.query;
+
+    // Record search history for the logged-in user (best-effort)
+    prisma.searchHistory
+      .create({ data: { userId: req.user.id, query: query.slice(0, 500) } })
+      .catch((e) => console.warn('Could not record search history:', e.message));
 
     const startups = await prisma.startup.findMany({
       include: {
@@ -302,6 +308,96 @@ USER QUERY: ${query}`;
       error: 'Research assistant unavailable',
       details: err.message,
     });
+  }
+});
+
+// GET /api/ai/history - recent research queries for the logged-in user
+router.get('/history', requireAuth, async (req, res) => {
+  try {
+    const history = await prisma.searchHistory.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 12,
+    });
+    res.json({ history: history.map((h) => ({ id: h.id, query: h.query, createdAt: h.createdAt })) });
+  } catch (err) {
+    console.error('History error:', err);
+    res.status(500).json({ error: 'Could not load history', code: 'INTERNAL_ERROR' });
+  }
+});
+
+// Founder Playbook schema
+const playbookSchema = z.object({
+  idea: z.string().min(10).max(500),
+  industry: z.string().min(2).max(100),
+  stage: z.string().min(2).max(60).optional(),
+});
+
+function generateMockPlaybook(input) {
+  return {
+    title: `Founder Playbook: ${input.industry || 'Your Startup'}`,
+    overview:
+      'AI services are currently unavailable, so this is a generic checklist. Configure a valid GEMINI_API_KEY or GROQ_API_KEY for a personalized playbook.',
+    checklist: [
+      { phase: 'Validate', items: ['Talk to 20 target users before building', 'Define a falsifiable demand hypothesis'] },
+      { phase: 'Build', items: ['Ship a thin MVP in weeks, not months', 'Instrument retention from day one'] },
+      { phase: 'Scale', items: ['Only scale spend once unit economics are positive', 'Watch CAC vs LTV continuously'] },
+    ],
+    pitfalls: [
+      { mistake: 'Building before validating demand', avoidance: 'Run a landing-page or concierge MVP first.' },
+      { mistake: 'Ignoring retention', avoidance: 'Track cohort retention before chasing growth.' },
+    ],
+  };
+}
+
+// POST /api/ai/playbook (auth required) - personalized founder checklist
+router.post('/playbook', requireAuth, riskScanLimiter, async (req, res) => {
+  try {
+    const input = playbookSchema.parse(req.body);
+
+    const similar = await prisma.startup.findMany({
+      where: { industry: { contains: input.industry, mode: 'insensitive' } },
+      include: { failureReasons: { take: 3 } },
+      take: 8,
+    });
+
+    const historicalContext = similar
+      .map((s) => `${s.name} (${s.status}): ${s.failureReasons.map((r) => r.description).join('; ')}`)
+      .join('\n');
+
+    const prompt = `SYSTEM: You are a startup mentor. Based ONLY on the historical failures below, generate a personalized founder playbook for the user's idea. Return ONLY valid JSON, no markdown:
+{
+  "title": "string",
+  "overview": "2-3 sentence summary of the biggest risks for this idea",
+  "checklist": [{ "phase": "Validate|Build|Scale", "items": ["actionable item"] }],
+  "pitfalls": [{ "mistake": "a common mistake", "avoidance": "how to avoid it" }]
+}
+
+HISTORICAL FAILURES:
+${historicalContext || 'No similar startups found.'}
+
+USER IDEA: ${input.idea}
+INDUSTRY: ${input.industry}
+STAGE: ${input.stage || 'idea'}`;
+
+    let playbook;
+    try {
+      playbook = await callAI(prompt, 'risk');
+      // callAI returns risk-mock shape on failure; detect and swap
+      if (!playbook || !playbook.checklist) {
+        playbook = generateMockPlaybook(input);
+      }
+    } catch {
+      playbook = generateMockPlaybook(input);
+    }
+
+    res.json({ ...playbook, comparedAgainst: similar.length });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Invalid input', code: 'VALIDATION_ERROR', details: err.errors });
+    }
+    console.error('Playbook error:', err);
+    res.json({ ...generateMockPlaybook(req.body || {}), comparedAgainst: 0, error: 'AI unavailable' });
   }
 });
 

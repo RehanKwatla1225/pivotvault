@@ -4,9 +4,63 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   THEME TOKENS
+   Colors are stored as space-separated RGB channels so that
+   Tailwind opacity modifiers (bg-surface/60, border-accent/40)
+   keep working. Themes switch via [data-theme] on <html>.
+   ============================================================ */
+
+:root,
+[data-theme='blue'] {
+  /* Dark navy / indigo (the original premium dark look) */
+  --color-bg: 11 16 32;          /* #0B1020 */
+  --color-surface: 17 24 39;     /* #111827 */
+  --color-surface-2: 31 41 55;   /* #1F2937 */
+  --color-border: 31 41 55;      /* #1F2937 */
+  --color-accent: 109 94 245;    /* #6D5EF5 */
+  --color-accent-2: 139 92 246;  /* #8B5CF6 */
+  --color-success: 16 185 129;   /* #10B981 */
+  --color-warning: 245 158 11;   /* #F59E0B */
+  --color-danger: 239 68 68;     /* #EF4444 */
+  --color-text-primary: 241 245 249;   /* #F1F5F9 */
+  --color-text-secondary: 148 163 184; /* #94A3B8 */
+  --color-text-muted: 71 85 105;       /* #475569 */
+
+  --grid-line: 31 41 55;
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --card-hover-shadow: 0 8px 32px 0 rgba(109, 94, 245, 0.15), inset 0 0 12px rgba(109, 94, 245, 0.05);
+  color-scheme: dark;
+}
+
+[data-theme='beige'] {
+  /* Warm cream light theme with amber/terracotta accent */
+  --color-bg: 245 240 230;       /* #F5F0E6 warm sand */
+  --color-surface: 255 251 244;  /* #FFFBF4 cream */
+  --color-surface-2: 237 229 214;/* #EDE5D6 */
+  --color-border: 224 213 193;   /* #E0D5C1 */
+  --color-accent: 180 120 40;    /* #B47828 warm gold */
+  --color-accent-2: 200 100 50;  /* #C86432 terracotta */
+  --color-success: 22 145 102;   /* #169166 */
+  --color-warning: 201 130 10;   /* #C9820A */
+  --color-danger: 200 60 50;     /* #C83C32 */
+  --color-text-primary: 41 33 24;      /* #292118 espresso */
+  --color-text-secondary: 92 78 60;    /* #5C4E3C */
+  --color-text-muted: 150 134 110;     /* #96866E */
+
+  --grid-line: 224 213 193;
+  --card-shadow: 0 8px 24px 0 rgba(120, 90, 40, 0.10);
+  --card-hover-shadow: 0 10px 28px 0 rgba(180, 120, 40, 0.18), inset 0 0 12px rgba(180, 120, 40, 0.05);
+  color-scheme: light;
+}
+
 @layer base {
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
   body {
     @apply bg-bg text-text-primary font-body antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
@@ -26,26 +80,34 @@
 
 .glass-card {
   @apply bg-surface/60 backdrop-blur-md border border-border/80 rounded-card transition-all duration-300;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-shadow: var(--card-shadow);
 }
 
 .glass-card:hover {
   @apply border-accent/40 bg-surface/80;
-  box-shadow: 0 8px 32px 0 rgba(109, 94, 245, 0.15), inset 0 0 12px rgba(109, 94, 245, 0.05);
+  box-shadow: var(--card-hover-shadow);
 }
 
-/* Custom Scrollbar for premium dark theme */
+/* Theme-aware grid overlay helper (used on Landing) */
+.bg-theme-grid {
+  background-image:
+    linear-gradient(to right, rgb(var(--grid-line) / 0.33) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(var(--grid-line) / 0.33) 1px, transparent 1px);
+  background-size: 4rem 4rem;
+}
+
+/* Custom Scrollbar (theme-aware) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B1020;
+  background: rgb(var(--color-bg));
 }
 ::-webkit-scrollbar-thumb {
-  background: #1F2937;
+  background: rgb(var(--color-surface-2));
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #6D5EF5;
+  background: rgb(var(--color-accent));
 }

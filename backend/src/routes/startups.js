@@ -12,6 +12,13 @@ router.get('/', async (req, res, next) => {
       q: z.string().optional(),
       industry: z.string().optional(),
       country: z.string().optional(),
+      category: z.enum([
+        'retention', 'monetization', 'pmf', 'cac', 'competition', 'team',
+        'timing', 'regulation', 'other', 'product', 'legal',
+        'unit_economics', 'operations', 'leadership', 'community',
+        'strategy', 'cashflow', 'platform_risk', 'execution', 'pricing',
+        'fraud', 'ethics',
+      ]).optional(),
       status: z.enum(['failed', 'acquired', 'pivoted', 'zombie']).optional(),
       sort: z.enum(['lifetime', 'funding', 'users', 'name']).optional().default('name'),
       order: z.enum(['asc', 'desc']).optional().default('desc'),
@@ -26,6 +33,9 @@ router.get('/', async (req, res, next) => {
     if (params.industry) where.industry = params.industry;
     if (params.country) where.country = params.country;
     if (params.status) where.status = params.status;
+    if (params.category) {
+      where.failureReasons = { some: { category: params.category } };
+    }
     if (params.q) {
       where.OR = [
         { name: { contains: params.q, mode: 'insensitive' } },

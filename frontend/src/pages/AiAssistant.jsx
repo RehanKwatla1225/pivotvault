@@ -1,11 +1,9 @@
 import React from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Search, BookOpen, AlertCircle, ArrowRight, ShieldAlert, ListRestart, HelpCircle } from 'lucide-react';
 import StartupCard from '../components/StartupCard';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+import api from '../lib/api';
 
 const AiAssistant = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,7 +19,7 @@ const AiAssistant = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.post(`${API_URL}/api/ai/research`, {
+      const response = await api.post('/ai/research', {
         query: searchQuery
       });
       setResult(response.data);

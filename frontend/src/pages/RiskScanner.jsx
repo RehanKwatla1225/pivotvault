@@ -1,13 +1,9 @@
 import clsx from 'clsx';
 import React from 'react';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, AlertTriangle, CheckCircle2, Share2, ArrowRight, Loader2 } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
-
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  'https://pivotvault-production.up.railway.app';
+import api from '../lib/api';
 
 const RiskScanner = () => {
   const [step, setStep] = React.useState('form'); // form | scanning | result
@@ -41,7 +37,7 @@ const RiskScanner = () => {
     }, 800);
 
     try {
-      const response = await axios.post(`${API_URL}/api/ai/risk-scan`, formData);
+      const response = await api.post('/ai/risk-scan', formData);
       setResult(response.data);
       // Wait at least 2.5s for "perceived intelligence"
       setTimeout(() => {

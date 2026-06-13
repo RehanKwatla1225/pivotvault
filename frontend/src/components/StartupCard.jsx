@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, DollarSign, ArrowRight, ShieldAlert } from 'lucide-react';
 import { clsx } from 'clsx';
+import BookmarkButton from './BookmarkButton';
 
 const StartupCard = ({ name, slug, status, industry, fundingInr, peakUsers, lifetimeMonths, summary, topFailureReason, foundingYear, shutdownYear }) => {
   const formatINR = (val) => {
@@ -69,6 +70,7 @@ const StartupCard = ({ name, slug, status, industry, fundingInr, peakUsers, life
             {name.substring(0, 2).toUpperCase()}
           </div>
           <div className="flex flex-col items-end gap-1.5">
+            <BookmarkButton slug={slug} />
             <span className={clsx(
               'px-2.5 py-0.5 rounded-badge text-[10px] font-bold uppercase tracking-wider border',
               statusColors[status] || statusColors.failed

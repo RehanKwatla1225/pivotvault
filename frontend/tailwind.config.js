@@ -1,4 +1,9 @@
 /** @type {import('tailwindcss').Config} */
+
+// Helper to build a color that reads space-separated RGB channels from a CSS var,
+// while still supporting Tailwind's opacity suffixes (e.g. bg-surface/60).
+const withVar = (name) => `rgb(var(${name}) / <alpha-value>)`;
+
 export default {
   content: [
     "./index.html",
@@ -7,35 +12,25 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#0B1020',
-        surface: '#111827',
-        'surface-2': '#1F2937',
-        border: '#1F2937',
-        accent: '#6D5EF5',
-        'accent-2': '#8B5CF6',
-        success: '#10B981',
-        warning: '#F59E0B',
-        danger: '#EF4444',
-        'text-primary': '#F1F5F9',
-        'text-secondary': '#94A3B8',
-        'text-muted': '#475569',
+        bg: withVar('--color-bg'),
+        surface: withVar('--color-surface'),
+        'surface-2': withVar('--color-surface-2'),
+        border: withVar('--color-border'),
+        accent: withVar('--color-accent'),
+        'accent-2': withVar('--color-accent-2'),
+        success: withVar('--color-success'),
+        warning: withVar('--color-warning'),
+        danger: withVar('--color-danger'),
+        'text-primary': withVar('--color-text-primary'),
+        'text-secondary': withVar('--color-text-secondary'),
+        'text-muted': withVar('--color-text-muted'),
+        red: withVar('--color-danger'),
+        green: withVar('--color-success'),
       },
       fontFamily: {
         display: ['Space Grotesk', 'sans-serif'],
         body: ['Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
-      },
-      spacing: {
-        '4': '4px',
-        '8': '8px',
-        '12': '12px',
-        '16': '16px',
-        '24': '24px',
-        '32': '32px',
-        '48': '48px',
-        '64': '64px',
-        '96': '96px',
-        '128': '128px',
       },
       borderRadius: {
         card: '16px',
@@ -46,7 +41,16 @@ export default {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-      }
+      },
+      keyframes: {
+        'fade-in': {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'fade-in': 'fade-in 0.4s ease-out',
+      },
     },
   },
   plugins: [],

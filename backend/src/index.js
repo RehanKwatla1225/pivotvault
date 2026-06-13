@@ -12,6 +12,9 @@ const aiRoutes = require('./routes/ai');
 const graphRoutes = require('./routes/graph');
 const confessionRoutes = require('./routes/confessions');
 const insightsRoutes = require('./routes/insights');
+const authRoutes = require('./routes/auth');
+const bookmarkRoutes = require('./routes/bookmarks');
+const quizRoutes = require('./routes/quiz');
 
 const prisma = new PrismaClient();
 const app = express();
@@ -21,6 +24,7 @@ app.use(helmet());
 app.use(cors({
   origin: [
     'http://localhost:3000',
+    'http://localhost:5173',
     'https://pivotvault.netlify.app'
   ],
   credentials: true
@@ -44,11 +48,14 @@ app.get('/api/health', (req, res) => {
 });
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/startups', startupRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/graph', graphRoutes);
 app.use('/api/confessions', confessionRoutes);
 app.use('/api/insights', insightsRoutes);
+app.use('/api/bookmarks', bookmarkRoutes);
+app.use('/api/quiz', quizRoutes);
 
 // 404 handler
 app.use((req, res) => {
