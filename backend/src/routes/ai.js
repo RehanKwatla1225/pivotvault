@@ -60,7 +60,21 @@ async function callGroq(prompt) {
   model: 'llama-3.3-70b-versatile',
   messages: [{ role: 'user', content: prompt }],
 });
-  return JSON.parse(response.choices[0].message.content);
+  const content = response.choices[0].message.content;
+
+try {
+  return JSON.parse(content);
+} catch (err) {
+  console.error("RAW GROQ RESPONSE:", content);
+
+  return {
+    aiSummary: content,
+    sources: [],
+    timeline: [],
+    relatedStartups: [],
+    keyLessons: []
+  };
+}
 }
 
 // type = 'risk' | 'research' — determines which mock schema to fall back to
