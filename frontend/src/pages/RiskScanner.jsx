@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, AlertTriangle, CheckCircle2, Share2, ArrowRight, Loader2 } from 'lucide-react';
+import { Zap, AlertTriangle, CheckCircle2, Share2, ArrowRight, Loader2, Shuffle, Lightbulb, Sword, ShieldCheck, Target } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import api from '../lib/api';
 
@@ -15,6 +15,8 @@ const RiskScanner = () => {
     industry: 'SaaS'
   });
   const [result, setResult] = React.useState(null);
+  const [compLoading, setCompLoading] = React.useState(false);
+  const [compResult, setCompResult] = React.useState(null);
   const [loadingText, setLoadingText] = React.useState('');
 
   const loadingMessages = [
@@ -48,6 +50,21 @@ const RiskScanner = () => {
       console.error(err);
       clearInterval(interval);
       setStep('form');
+    }
+  };
+
+  const handleCompare = async () => {
+    setCompLoading(true);
+    try {
+      const response = await api.post('/ai/compare-competitors', {
+        idea: formData.idea,
+        industry: formData.industry
+      });
+      setCompResult(response.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCompLoading(false);
     }
   };
 
@@ -212,6 +229,107 @@ const RiskScanner = () => {
                 ))}
               </div>
             </div>
+
+            <div className="glass-card p-10 bg-accent/5 border-accent/20">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                <div>
+                  <h3 className="text-2xl font-display font-bold flex items-center gap-3">
+                    <Sword className="text-accent w-8 h-8" />
+                    Market Battleground
+                  </h3>
+                  <p className="text-text-secondary text-sm mt-1">Live web analysis of active competitors in your space.</p>
+                </div>
+                {!compResult && (
+                  <button 
+                    onClick={handleCompare}
+                    disabled={compLoading}
+                    className="bg-accent hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {compLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Target className="w-5 h-5" />
+                    )}
+                    Compare with Live Competitors
+                  </button>
+                )}
+              </div>
+
+              {compLoading && (
+                <div className="py-20 text-center animate-pulse text-accent font-data flex flex-col items-center justify-center gap-4">
+                  <div className="w-8 h-8 border-3 border-accent/20 border-t-accent rounded-full animate-spin" />
+                  SCANNING THE LIVE WEB FOR ACTIVE THREATS...
+                </div>
+              )}
+
+              {compResult && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-8"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {compResult.competitors.map((comp, i) => (
+                      <div key={i} className="p-5 rounded-xl bg-surface/40 border border-border flex flex-col justify-between">
+                        <div>
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="font-bold text-text-primary">{comp.name}</div>
+                            <div className={clsx(
+                              "text-[8px] font-bold uppercase px-1.5 py-0.5 rounded",
+                              comp.threatLevel === 'high' ? "bg-red text-white" : "bg-warning text-black"
+                            )}>
+                              {comp.threatLevel} threat
+                            </div>
+                          </div>
+                          <div className="text-xs text-text-secondary leading-relaxed italic">"{comp.moat}"</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="p-6 rounded-xl bg-surface-2 border border-border">
+                      <h4 className="text-sm font-bold text-text-muted uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-green" />
+                        Survival Strategy
+                      </h4>
+                      <p className="text-sm text-text-primary leading-relaxed">{compResult.survivalStrategy}</p>
+                    </div>
+                    <div className="p-6 rounded-xl bg-surface-2 border border-border">
+                      <h4 className="text-sm font-bold text-text-muted uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <Target className="w-4 h-4 text-accent" />
+                        Market Gap Analysis
+                      </h4>
+                      <p className="text-sm text-text-primary leading-relaxed">{compResult.gapAnalysis}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+
+            {result.suggestedPivots && (
+              <div className="glass-card p-10 bg-accent/5 border-accent/20">
+                <h3 className="text-2xl font-display font-bold mb-8 flex items-center gap-3">
+                  <Shuffle className="text-accent w-8 h-8" />
+                  AI-Powered Strategic Pivots
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {result.suggestedPivots.map((pivot, i) => (
+                    <div key={i} className="p-6 rounded-xl bg-surface/50 border border-border/50 hover:border-accent/40 transition-all group">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Lightbulb className="w-5 h-5 text-accent" />
+                        <div className="text-xs font-bold text-accent uppercase tracking-widest">{pivot.type}</div>
+                      </div>
+                      <div className="font-bold text-lg mb-2 text-text-primary group-hover:text-accent transition-colors">{pivot.description}</div>
+                      <div className="text-text-secondary text-sm italic border-l-2 border-border pl-4 mt-4">
+                        <span className="font-bold text-text-muted not-italic uppercase text-[10px] block mb-1">Historical Precedent</span>
+                        "{pivot.historicalExample}"
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-center">
               <button 

@@ -53,6 +53,16 @@ async function callGemini(prompt) {
   return JSON.parse(text);
 }
 
+async function callGeminiText(prompt) {
+  const { GoogleGenerativeAI } = require('@google/generative-ai');
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash',
+  });
+  const result = await model.generateContent(prompt);
+  return result.response.text().trim();
+}
+
 async function callGroq(prompt) {
   const Groq = require('groq-sdk');
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -157,6 +167,10 @@ function generateMockAnalysis(input) {
       { priority: 'high', action: 'Define clear retention metrics from day one', rationale: 'Churn was the primary killer for similar startups' },
       { priority: 'medium', action: 'Consider a freemium model to reduce acquisition friction', rationale: 'Similar startups struggled with paid acquisition costs' },
     ],
+    suggestedPivots: [
+      { type: 'Service Pivot', description: 'Transition from a direct-to-consumer app to a B2B SaaS for gym owners.', historicalExample: 'Mindbody successfully pivoted from a basic directory to a full management suite.' },
+      { type: 'Platform Pivot', description: 'Focus on a browser extension rather than a mobile app to meet users where they already work.', historicalExample: 'Grammarly pivoted from a standalone site to an omni-present extension.' }
+    ]
   };
 }
 
@@ -212,7 +226,8 @@ SCHEMA: {
   "riskBreakdown": { "customerAcquisition": 0-100, "retention": 0-100, "monetization": 0-100, "competition": 0-100, "timing": 0-100 },
   "primaryRisk": "string",
   "similarStartups": [{ "name": "string", "similarity": 0-100, "keyLesson": "string" }],
-  "recommendations": [{ "priority": "high|medium|low", "action": "string", "rationale": "string" }]
+  "recommendations": [{ "priority": "high|medium|low", "action": "string", "rationale": "string" }],
+  "suggestedPivots": [{ "type": "string", "description": "string", "historicalExample": "string" }]
 }
 
 HISTORICAL CONTEXT:
@@ -378,6 +393,125 @@ USER QUERY: ${query}`;
       error: 'Research assistant unavailable',
       details: err.message,
     });
+  }
+});
+// POST /api/ai/compare-competitors
+router.post('/compare-competitors', async (req, res, next) => {
+  try {
+    const { idea, industry } = req.body;
+
+    if (!idea) {
+      return res.status(400).json({ error: 'Idea is required' });
+    }
+
+    // 1. Search for live competitors
+    const searchQuery = `Top active companies and startups in ${industry} doing ${idea.slice(0, 100)}`;
+    let webContext = '';
+    try {
+      const webResults = await searchWeb(searchQuery);
+      webContext = webResults
+        .slice(0, 5)
+        .map((r, i) => `[${i + 1}] ${r.title}: ${r.content}`)
+        .join('\n\n');
+    } catch (err) {
+      console.warn('Tavily search failed for competitors:', err.message);
+    }
+
+    // 2. Analyze with Gemini
+    const prompt = `SYSTEM: You are a market intelligence analyst. 
+Compare the user's startup idea against the live competitors found on the web.
+Identify why these competitors are currently winning (their moats) and where the user's idea might fall into a "failure trap" if they don't differentiate.
+
+USER IDEA: ${idea}
+INDUSTRY: ${industry}
+
+LIVE WEB CONTEXT:
+${webContext || 'No specific live web data found. Use your general knowledge of the ${industry} market.'}
+
+Return ONLY valid JSON with this schema:
+{
+  "competitors": [{ "name": "string", "moat": "string", "threatLevel": "high|medium|low" }],
+  "gapAnalysis": "A detailed 1-2 paragraph analysis of the market gap or lack thereof.",
+  "survivalStrategy": "A specific strategic recommendation to survive against these incumbents."
+}`;
+
+    const analysis = await callGemini(prompt);
+    res.json(analysis);
+
+  } catch (err) {
+    console.error('Competitor comparison error:', err);
+    res.status(500).json({ 
+      error: 'Failed to analyze competitors',
+      competitors: [
+        { name: 'Incumbent X', moat: 'Established brand and high switching costs.', threatLevel: 'high' },
+        { name: 'Startup Y', moat: 'Niche focus and rapid feature iteration.', threatLevel: 'medium' }
+      ],
+      gapAnalysis: 'The market is crowded. Your primary challenge is overcoming the network effects of established players.',
+      survivalStrategy: 'Focus on a hyper-specific unserved segment before attempting to scale.'
+    });
+  }
+});
+
+// POST /api/ai/ghost-chat
+router.post('/ghost-chat', async (req, res, next) => {
+...
+  try {
+    const { slug, message, history = [] } = req.body;
+
+    if (!slug || !message) {
+      return res.status(400).json({ error: 'Slug and message are required' });
+    }
+
+    const startup = await prisma.startup.findUnique({
+      where: { slug },
+      include: {
+        failureReasons: true,
+      }
+    });
+
+    if (!startup) {
+      return res.status(404).json({ error: 'Startup not found' });
+    }
+
+    const reasonsStr = startup.failureReasons.map(r => `${r.category}: ${r.description}`).join('\n');
+
+    const prompt = `SYSTEM: You are the founder of the failed startup "${startup.name}". 
+Your startup was in the ${startup.industry} industry and lasted ${startup.lifetimeMonths} months.
+It failed because of the following reasons:
+${reasonsStr}
+
+Founder Story Context:
+${startup.founderStory || 'No specific story provided.'}
+
+Your Goal:
+Answer the user's question as if you are that founder reflecting on your failure with 20/20 hindsight. 
+Be radically honest, candid, and slightly weary but insightful. 
+Don't be overly optimistic; you are here to teach others from your mistakes.
+Keep responses concise (max 3-4 sentences) and maintain a "post-mortem" tone.
+
+Chat History:
+${history.map(h => `${h.role === 'user' ? 'User' : 'Founder'}: ${h.content}`).join('\n')}
+
+User Question: ${message}
+
+Founder Response:`;
+
+    const response = await callAI(prompt, 'research'); // Using research type for prose-like response if it falls back
+
+    // callAI might return JSON if it goes through Groq/Gemini with the research schema
+    // But for ghost chat, we want raw text. Let's adjust callAI or just use callGemini directly here.
+
+    const genAIResponse = await callGeminiText(`SYSTEM: You are an expert AI persona. 
+Based on the prompt below, provide a response in the first-person as the founder.
+Return ONLY the text of the response. No JSON. No markdown wrappers.
+
+PROMPT:
+${prompt}`);
+
+    res.json({ content: genAIResponse });
+  } catch (err) {
+    console.error('Ghost chat error:', err);
+    res.status(500).json({ error: 'Failed to communicate with the ghost of the founder' });
   }
 });
 

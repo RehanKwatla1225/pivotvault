@@ -211,7 +211,7 @@ const InsightsDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         {/* Yearly shutdown trend */}
         <div className="lg:col-span-2 glass-card p-6 sm:p-8 bg-surface/30">
           <h3 className="text-lg font-display font-bold mb-6 flex items-center gap-2 text-text-primary">
@@ -263,6 +263,62 @@ const InsightsDashboard = () => {
               </Link>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* VC Anti-Portfolio: Death Zones */}
+      <div className="mb-12">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-2xl font-display font-bold text-text-primary flex items-center gap-3">
+              <Skull className="w-6 h-6 text-red" />
+              VC Anti-Portfolio: Death Zones
+            </h2>
+            <p className="text-text-secondary text-sm mt-1">Sectors showing the highest failure intensity and shortest lifespans.</p>
+          </div>
+          <div className="hidden sm:block px-4 py-1.5 rounded-full bg-red/10 border border-red/20 text-red text-[10px] font-bold uppercase tracking-widest">
+            Critical Risk Warning
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {(data.deathZones || []).map((zone, i) => (
+            <div 
+              key={i} 
+              className={clsx(
+                "glass-card p-6 border-l-4 transition-all hover:scale-[1.02]",
+                zone.riskLevel === 'extreme' ? "border-l-red bg-red/5" : 
+                zone.riskLevel === 'critical' ? "border-l-orange-600 bg-orange-600/5" : "border-l-warning bg-warning/5"
+              )}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="text-lg font-bold text-text-primary">{zone.industry}</div>
+                <div className={clsx(
+                  "text-[9px] font-bold uppercase tracking-tighter px-2 py-0.5 rounded",
+                  zone.riskLevel === 'extreme' ? "bg-red text-white" : 
+                  zone.riskLevel === 'critical' ? "bg-orange-600 text-white" : "bg-warning text-black"
+                )}>
+                  {zone.riskLevel}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <div className="text-[10px] text-text-muted uppercase font-bold mb-1">Failures</div>
+                  <div className="text-xl font-data font-bold text-text-primary">{zone.deathCount}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-text-muted uppercase font-bold mb-1">Avg. Life</div>
+                  <div className="text-xl font-data font-bold text-text-primary">{zone.avgLifespan} Mo</div>
+                </div>
+              </div>
+
+              <div className="text-xs text-text-secondary leading-relaxed border-t border-border/20 pt-4">
+                <span className="font-bold text-text-muted mr-1">ANALYSIS:</span>
+                {zone.reason}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { clsx } from 'clsx';
 import StartupCard from '../components/StartupCard';
+import GhostChat from '../components/GhostChat';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
@@ -392,6 +393,7 @@ const PostmortemPage = () => {
           </div>
         </div>
       </div>
+      <GhostChat startupSlug={startup.slug} startupName={startup.name} />
     </div>
   );
 };

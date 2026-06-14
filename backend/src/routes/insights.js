@@ -14,7 +14,7 @@ router.get('/', async (req, res, next) => {
       return res.json(insightsCache.data);
     }
 
-    const [failureData, yearlyData, topViewed, industryData, totalCount, fundingAggregate, fastestStartup, averageRisk] = await Promise.all([
+    const [failureData, yearlyData, topViewed, industryData, totalCount, fundingAggregate, fastestStartup, averageRisk, deathZoneData] = await Promise.all([
       // Top failure reasons by industry
       prisma.failureReason.groupBy({
         by: ['category'],
@@ -71,6 +71,15 @@ router.get('/', async (req, res, next) => {
           monetizationScore: true,
         },
       }),
+      // Death Zones (High failure industries with low average lifetime)
+      prisma.startup.groupBy({
+        by: ['industry'],
+        _count: { id: true },
+        _avg: { lifetimeMonths: true },
+        where: { status: 'failed' },
+        orderBy: { _count: { id: 'desc' } },
+        take: 4,
+      }),
     ]);
 
     const totalFunding = fundingAggregate._sum.fundingInr ? fundingAggregate._sum.fundingInr.toString() : '0';
@@ -106,6 +115,25 @@ router.get('/', async (req, res, next) => {
         industry: i.industry,
         count: i._count.id,
       })),
+      deathZones: deathZoneData.map(d => {
+        const avgLife = d._avg.lifetimeMonths || 0;
+        let riskLevel = 'high';
+        let reason = 'Market oversaturation and high acquisition costs.';
+        if (avgLife < 12) {
+          riskLevel = 'critical';
+          reason = 'Severe PMF issues and rapid capital depletion.';
+        } else if (d._count.id > 100) {
+          riskLevel = 'extreme';
+          reason = 'Systemic industry decline and regulatory headwinds.';
+        }
+        return {
+          industry: d.industry,
+          deathCount: d._count.id,
+          avgLifespan: Math.round(avgLife),
+          riskLevel,
+          reason
+        };
+      })
     };
 
     insightsCache.data = result;
